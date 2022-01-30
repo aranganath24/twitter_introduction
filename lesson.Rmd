@@ -1,0 +1,198 @@
+# Twitter data extraction
+
+## Extract data by hashtags or keywords
+
+### Extract tweets by hashtag
+
+
+```{r}
+# Pull tweets with #CancelStudentDebt; returns 1000 most recent tweets; time by GMT
+student_debt_tweets_hashtag<-search_tweets(q="#CancelStudentDebt", 
+                                   n=1000,
+                                   include_rts=FALSE,
+                                   `-filter`="replies",
+                                   lang="en")
+```
+
+```{r}
+# Print contents of "student_debt_tweets" object; contains tweets and various information
+student_debt_tweets_hashtag
+```
+
+search queries are not case sensitive (); "CancelStudentDebt" will also search for "cancelstudentdebt"
+
+### Extract tweets by keyword
+
+```{r}
+capitalism_tweets_keyword<-search_tweets(q="capitalism", 
+                                   n=1000,
+                                   include_rts=FALSE,
+                                   `-filter`="replies",
+                                   lang="en")
+```
+
+
+### Extract tweets that meet multiple criteria
+
+```{r}
+# Pull tweets with "#CancelStudentDebt" AND "biden"; returns 1000 most recent tweets; time by GMT
+student_debt_biden_tweets<-search_tweets(q="#CancelStudentDebt AND biden", 
+                                              n=1000,
+                                              include_rts=FALSE,
+                                              `-filter`="replies",
+                                              lang="en")
+
+student_debt_biden_tweets
+```
+
+```{r}
+# Pull tweets with "#CancelStudentDebt" AND "#capitalism"
+student_debt_capitalism_hashtags<-search_tweets(q="#cancelstudentdebt AND #Capitalism", 
+                                              n=1000,
+                                              include_rts=FALSE,
+                                              `-filter`="replies",
+                                              lang="en")
+```
+
+
+```{r}
+# Pull tweets with "#CancelStudentDebt" OR "capitalism"; returns 1000 most recent tweets; time by GMT
+student_debt_OR_capitalism_tweets<-search_tweets(q="#CancelStudentDebt OR capitalism", 
+                                              n=1000,
+                                              include_rts=FALSE,
+                                              `-filter`="replies",
+                                              lang="en")
+```
+
+### Extract tweets from a specific twitter handle 
+
+```{r}
+# # Pull tweets from an account (doesn't have same time constraints)
+# Pull last 3200 BLM tweets (note sometimes the query will return less than 3200 due to deletions)
+blm_tweets<-get_timeline("@Blklivesmatter", n=3200)
+```
+
+```{r}
+blm_tweets
+```
+
+# Automating the creation of Twitter wordclouds
+
+## Write a wordcloud function
+
+```{r}
+twitter_wordcloud<-function(twitterhandle, tweet_number){
+  tweet_timeline<-get_timeline(twitterhandle, n=tweet_number)
+  tweet_timeline_text<-str_c(tweet_timeline$text, collapse="")
+
+  tweet_timeline_text<-tweet_timeline_text %>%
+    str_remove("\\n") %>%                   # remove linebreaks
+    rm_twitter_url() %>%                    # Remove URLS
+    rm_url() %>%
+    str_remove_all("#\\S+") %>%             # Remove any hashtags
+    str_remove_all("@\\S+") %>%             # Remove any @ mentions
+    removeNumbers() %>%
+    stripWhitespace() %>%
+    removePunctuation() %>% 
+    str_remove_all(pattern='[:emoji:]')
+  
+  stopwords_toremove<-stopwords("english")
+
+  
+  textCorpus <- 
+    Corpus(VectorSource(tweet_timeline_text)) %>%
+    TermDocumentMatrix() %>%
+    as.matrix()
+  
+  textCorpus <- sort(rowSums(textCorpus), decreasing=TRUE)
+  textCorpus <- data.frame(word = names(textCorpus), freq=textCorpus, row.names = NULL)
+  textCorpus<-textCorpus %>% filter(!word %in% stopwords_toremove)
+  
+  wordcloud <- wordcloud2(data = textCorpus, minRotation = 0, maxRotation = 0, ellipticity = 0.3)
+  return(wordcloud)
+}
+```
+
+
+```{r}
+# test function using "nytimes" handle
+nyt_wordcloud<-twitter_wordcloud("nytimes", 400)
+
+nyt_wordcloud
+```
+
+## Iteratively apply ```twitter_wordcloud``` function to several handles
+
+```{r}
+# Iterate across handles and put in list
+handles<-c("nytimes", "FinancialTimes", "FoxNews", "cnn", "washingtonpost", "denverpost")
+number<-c(400)
+wordcloud_list<-map2(.x=handles, .y=number, twitter_wordcloud)
+```
+
+
+```{r}
+# assign names to list elements
+names(wordcloud_list)<-handles
+```
+
+```{r}
+# inspect "FinancialTimes" wordcloud
+wordcloud_list[["washingtonpost"]]
+```
+
+```{r}
+# inspect "denverpost" wordcloud
+wordcloud_list[["denverpost"]]
+```
+
+## Write a new function that can take multiple handles as inputs, and returns wordclouds as a list
+
+Embed the ```twitter_wordcloud``` function into another function that iterates across handles to automate the process of making multiple twitter wordclouds: 
+
+```{r}
+multiple_wordcloud_generator<-function(handle_list, tweet_number_list){
+  wordclouds<-map2(.x=handle_list, .y=tweet_number_list, twitter_wordcloud)
+  names(wordclouds)<-handle_list
+  return(wordclouds)
+}
+  
+handles<-list("@jacobin", "@TheEconomist")
+tweetnumber<-c(400,800)
+jacobin_econ<-multiple_wordcloud_generator(handles, tweetnumber)
+
+```
+
+
+```{r}
+jacobin_econ[["@jacobin"]]
+```
+
+```{r}
+jacobin_econ[["@TheEconomist"]]
+```
+
+## Iteratively write out multiple word clouds
+
+```{r}
+# Write function that takes list of word clouds, and word cloud names, and writes WC out to tisk
+output_wordclouds<-function(wordclouds_to_export, wordcloud_names){
+  setwd("/Users/adra7980/Documents/git_repositories/twitter_introduction/wordclouds")
+  install_phantomjs(force=TRUE)
+  saveWidget(wordclouds_to_export, paste0(wordcloud_names, ".html"), selfcontained=F)
+  webshot(paste0(wordcloud_names, ".html"), paste0(wordcloud_names, ".png"), vwidth=1000, vheight=1000, delay=10)
+}
+```
+
+```{r, eval=FALSE}
+map2(.x=jacobin_econ, .y=names(jacobin_econ), .f=output_wordclouds)
+```
+
+
+
+
+
+```{r}
+jacobin_econ
+```
+

@@ -1,3 +1,12 @@
-down-the-rabbit-hole
-the-pool-of-tears
-a-caucus-race-and-a-long-tale
+introduction
+twitter-data-extraction
+extract-data-by-hashtags-or-keywords
+extract-tweets-by-hashtag
+extract-tweets-by-keyword
+extract-tweets-that-meet-multiple-criteria
+extract-tweets-from-a-specific-twitter-handle
+automating-the-creation-of-twitter-wordclouds
+write-a-wordcloud-function
+iteratively-apply-twitter_wordcloud-function-to-several-handles
+write-a-new-function-that-can-take-multiple-handles-as-inputs-and-returns-wordclouds-as-a-list
+iteratively-write-out-multiple-word-clouds

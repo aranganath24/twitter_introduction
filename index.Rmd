@@ -5,5 +5,20 @@ date: "`r Sys.Date()`"
 site: bookdown::bookdown_site
 ---
 
-# Down the rabbit-hole
+# Introduction
 
+```{r}
+library(rtweet)
+library(httpuv)
+library(tidyverse)
+library(tidytext)
+library(wordcloud2)
+library(qdapRegex)
+library(tm)
+library(webshot)
+library(htmlwidgets)
+library(ggplot2)
+library(sf)
+library(tmap)
+library(knitr)
+```
